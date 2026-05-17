@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, ZoomIn, BounceIn, Layout } from 'react-native-reanimated';
+import { Play, RotateCcw, Heart } from 'lucide-react-native';
 import { FLAMES_MEANINGS, getFlamesAnimationSteps } from '../utils/flamesLogic';
 
 export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
@@ -28,7 +28,7 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
 
   const handleCalculate = () => {
     if (!name1.trim() || !name2.trim()) {
-      setError("Please enter both names");
+      setError("Please enter both names to run evaluation");
       return;
     }
     
@@ -41,45 +41,40 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
   // Run animation sequence
   useEffect(() => {
     if (phase === 'STRIKING' && animData) {
-      // Strike common letters one by one to build hype
       let step = 0;
       const totalCommon = animData.commonIndices1.length;
       
       if (totalCommon === 0) {
-        const timer = setTimeout(() => setPhase('COUNTING'), 1500);
+        const timer = setTimeout(() => setPhase('COUNTING'), 1200);
         return () => clearTimeout(timer);
       }
 
       const interval = setInterval(() => {
         if (step < totalCommon) {
-          // Use a function to ensure we get the latest state
           const currentStep = step;
           setStruck1(prev => [...prev, animData.commonIndices1[currentStep]]);
           setStruck2(prev => [...prev, animData.commonIndices2[currentStep]]);
           step++;
         } else {
           clearInterval(interval);
-          setTimeout(() => setPhase('COUNTING'), 1200);
+          setTimeout(() => setPhase('COUNTING'), 1000);
         }
-      }, 700); // 700ms delay between cutting each common letter
+      }, 500); // 500ms delay between cutting each common letter
       
       return () => clearInterval(interval);
     }
     
     if (phase === 'COUNTING' && animData) {
-      // Show count for 1.5s then move to eliminating
       const timer = setTimeout(() => {
         setPhase('ELIMINATING');
-      }, 1500);
+      }, 1200);
       return () => clearTimeout(timer);
     }
 
     if (phase === 'ELIMINATING' && animData) {
-      // Eliminate letters one by one
       let step = 0;
       const interval = setInterval(() => {
         if (step < animData.eliminationSteps.length) {
-          // Capture step in a local variable before state updater
           const currentStep = step;
           setEliminatedFlames(prev => {
              if (prev.includes(animData.eliminationSteps[currentStep])) return prev;
@@ -94,9 +89,9 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
             if (onCalculateSuccess) {
               onCalculateSuccess(animData.finalResult, name1, name2);
             }
-          }, 3500); // Wait 3.5s to show the glow for maximum suspense
+          }, 2000); // 2 seconds glow reveal
         }
-      }, 1200); // 1200ms between each elimination for major hype
+      }, 800); // 800ms speed for smoother official feel
       
       return () => clearInterval(interval);
     }
@@ -106,11 +101,9 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Expect the Unexpected</Text>
-
       {error ? (
         <Animated.Text entering={FadeIn} style={styles.errorText}>
-          {error}
+          ⚠️ {error}
         </Animated.Text>
       ) : null}
 
@@ -118,22 +111,23 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
         <TouchableOpacity 
           style={styles.calculateButton}
           onPress={handleCalculate}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
         >
-          <LinearGradient
-            colors={['#FF4D4D', '#FF0055']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.buttonGradient}
-          >
-            <Text style={styles.buttonText}>💘 Try It</Text>
-          </LinearGradient>
+          <View style={styles.buttonContent}>
+            <Heart size={18} color="#FFF" fill="#FFF" style={styles.buttonIcon} />
+            <Text style={styles.buttonText}>Evaluate Compatibility</Text>
+          </View>
         </TouchableOpacity>
       )}
 
       {(phase === 'STRIKING' || phase === 'COUNTING' || phase === 'ELIMINATING') && animData && (
         <Animated.View entering={FadeIn} style={styles.animationContainer}>
-          
+          <Text style={styles.phaseLabel}>
+            {phase === 'STRIKING' && 'ANALYZING ALPHABET RELATIONSHIPS...'}
+            {phase === 'COUNTING' && 'COMPUTING TOTAL MATRIX RATIO...'}
+            {phase === 'ELIMINATING' && 'ELIMINATING DEVIATION COEFFICIENTS...'}
+          </Text>
+
           <View style={styles.namesRow}>
              <View style={styles.nameBlock}>
                 {animData.name1Array.map((char, idx) => (
@@ -154,7 +148,7 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
 
           {phase === 'COUNTING' && (
              <Animated.View entering={BounceIn} style={styles.countContainer}>
-               <Text style={styles.countText}>Total: {animData.count}</Text>
+               <Text style={styles.countText}>INDEX DIVISOR: {animData.count}</Text>
              </Animated.View>
           )}
 
@@ -167,7 +161,7 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
                    if (isSurvivor) {
                      return (
                        <Animated.Text 
-                          entering={ZoomIn.duration(1500)}
+                          entering={ZoomIn.duration(1000)}
                           key={`survivor-${fChar}`} 
                           style={[styles.flamesLetter, styles.glowingLetter]}
                        >
@@ -192,19 +186,21 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
       )}
 
       {phase === 'RESULT' && meaning && (
-        <Animated.View entering={ZoomIn.duration(800)} style={styles.resultContainer}>
-          <View style={styles.resultCircle}>
+        <Animated.View entering={ZoomIn.duration(600)} style={styles.resultContainer}>
+          <View style={[styles.resultBadge, { backgroundColor: meaning.color + '15', borderColor: meaning.color }]}>
              <Text style={styles.emoji}>{meaning.emoji}</Text>
+             <Text style={[styles.resultTitle, { color: meaning.color }]}>
+               {meaning.title.toUpperCase()}
+             </Text>
           </View>
-          <Animated.Text entering={BounceIn.delay(400)} style={[styles.resultTitle, { color: meaning.color }]}>
-            {meaning.title}
-          </Animated.Text>
+          
           <Text style={styles.descriptionText}>
-            {meaning.description}
+            "{meaning.description}"
           </Text>
 
-          <TouchableOpacity style={{marginTop: 20}} onPress={resetState}>
-            <Text style={{color: '#FF0055', fontWeight: 'bold'}}>Recalculate</Text>
+          <TouchableOpacity style={styles.recalculateButton} onPress={resetState} activeOpacity={0.8}>
+            <RotateCcw size={14} color="#8A2BE2" style={{marginRight: 6}} />
+            <Text style={styles.recalculateText}>New Compatibility Check</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -215,50 +211,58 @@ export default function FlamesCalculator({ name1, name2, onCalculateSuccess }) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-    padding: 25,
     alignItems: 'center',
-    shadowColor: '#FF0055',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 10,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#FFEBEB',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FF0055',
-    marginBottom: 20,
+    marginTop: 10,
   },
   errorText: {
-    color: '#E74C3C',
+    color: '#DC2626',
     textAlign: 'center',
+    fontSize: 13,
     marginBottom: 15,
     fontWeight: '700',
   },
   calculateButton: {
-    borderRadius: 30,
+    width: '100%',
+    borderRadius: 12,
+    backgroundColor: '#8A2BE2',
     overflow: 'hidden',
-    width: '80%',
+    paddingVertical: 14,
+    shadowColor: '#8A2BE2',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  buttonGradient: {
-    paddingVertical: 15,
+  buttonContent: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+  },
+  buttonIcon: {
+    marginTop: 1,
   },
   buttonText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   animationContainer: {
     width: '100%',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 15,
+    backgroundColor: '#FAF9FF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EBE3FF',
+    marginTop: 10,
+  },
+  phaseLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#8A2BE2',
+    letterSpacing: 1,
+    marginBottom: 15,
   },
   namesRow: {
     flexDirection: 'row',
@@ -266,88 +270,110 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     marginBottom: 20,
+    paddingHorizontal: 10,
   },
   nameBlock: {
     flexDirection: 'row',
-    marginHorizontal: 10,
+    marginHorizontal: 8,
   },
   letter: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2C3E50',
-    marginHorizontal: 2,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginHorizontal: 1,
+    fontFamily: 'monospace',
   },
   struckLetter: {
     textDecorationLine: 'line-through',
-    color: '#E74C3C',
-    opacity: 0.5,
+    color: '#9CA3AF',
+    opacity: 0.4,
   },
   plusText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FF0055',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#8A2BE2',
   },
   countContainer: {
-    backgroundColor: '#FFD1D1',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: '#EBE3FF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   countText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF0055',
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#8A2BE2',
+    letterSpacing: 0.5,
   },
   flamesRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '80%',
-    marginTop: 10,
+    marginTop: 5,
   },
   flamesLetter: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
-    color: '#FF0055',
+    color: '#8A2BE2',
   },
   eliminatedFlamesLetter: {
     textDecorationLine: 'line-through',
-    color: '#BDC3C7',
+    color: '#D1D5DB',
     opacity: 0.3,
   },
   glowingLetter: {
-    textShadowColor: '#FF0055',
+    color: '#8A2BE2',
+    textShadowColor: '#8A2BE2',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
-    transform: [{ scale: 1.5 }],
+    textShadowRadius: 15,
+    transform: [{ scale: 1.3 }],
   },
   resultContainer: {
     alignItems: 'center',
-    paddingVertical: 10,
+    width: '100%',
+    paddingVertical: 5,
   },
-  resultCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFF5F5',
-    justifyContent: 'center',
+  resultBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFD1D1',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
     marginBottom: 15,
+    gap: 10,
   },
   emoji: {
-    fontSize: 50,
+    fontSize: 24,
   },
   resultTitle: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: '900',
-    marginBottom: 10,
+    letterSpacing: 1,
   },
   descriptionText: {
-    fontSize: 16,
-    color: '#7F8C8D',
+    fontSize: 14,
+    color: '#4B5563',
     textAlign: 'center',
     fontStyle: 'italic',
-  }
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  recalculateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAF9FF',
+    borderWidth: 1,
+    borderColor: '#EBE3FF',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  recalculateText: {
+    color: '#8A2BE2',
+    fontWeight: '800',
+    fontSize: 12,
+  },
 });
